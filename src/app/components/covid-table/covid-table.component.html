@@ -1,1 +1,220 @@
-<p>covid-table works!</p>
+<header class="header-container">
+  <div class="title-container">
+    <h3 class="title-header">List of Covid reports</h3>
+  </div>
+
+  <div class="filter-config-container">
+    <div class="filters-container">
+      <div class="country-select-filter">
+        <mat-form-field>
+          <mat-label>Select a Country</mat-label>
+          <mat-select
+            [(ngModel)]="selectedCountry"
+            (selectionChange)="onSelectCountry()"
+          >
+            <mat-option value="all">All</mat-option>
+            <mat-option
+              *ngFor="let country of dataSource.data"
+              [value]="country.country"
+            >
+              {{ country.country }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field class="input-filter">
+        <input
+          matInput
+          type="text"
+          [(ngModel)]="value"
+          placeholder="Search here..."
+          (keyup)="applyFilter($event)"
+        />
+        <button
+          class="search-icon-button"
+          matSuffix
+          mat-icon-button
+          color="primary"
+        >
+          <mat-icon
+            class="search-icon"
+            *ngIf="value != ''; else elseBlock"
+            (click)="value = ''"
+            >close</mat-icon
+          >
+          <ng-template #elseBlock>
+            <mat-icon class="search-icon">search</mat-icon>
+          </ng-template>
+        </button>
+      </mat-form-field>
+    </div>
+
+    <div class="action-buttons-container">
+      <button
+        mat-mini-fab
+        color="accent"
+        (click)="openAddEditDialog(add, {})"
+        matTooltip="Add new row"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
+
+      <button
+        mat-mini-fab
+        color="accent"
+        (click)="toggleForm()"
+        matTooltip="Show/Hide columns"
+      >
+        <mat-icon>remove_red_eye</mat-icon>
+      </button>
+
+      <button
+        mat-mini-fab
+        color="accent"
+        (click)="
+          openDeleteDialog(selection.selected.length, selection.selected)
+        "
+        [disabled]="!selection.hasValue()"
+        matTooltip="Delete selected row/s"
+      >
+        <mat-icon>delete</mat-icon>
+      </button>
+
+      <button
+        mat-mini-fab
+        color="accent"
+        [matMenuTriggerFor]="menuExport"
+        matTooltip="More actions"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #menuExport="matMenu">
+        <button mat-menu-item (click)="exportexcel()">
+          <span>Export as EXCEL</span>
+        </button>
+        <button mat-menu-item>
+          <span>Export as CSV</span>
+        </button>
+        <button mat-menu-item>
+          <span>Export as JSON</span>
+        </button>
+        <button mat-menu-item>
+          <span>Export as TXT</span>
+        </button>
+      </mat-menu>
+    </div>
+  </div>
+
+  <ng-container *ngFor="let item of checkBoxList">
+    <mat-checkbox
+      (change)="hideColumn($event, item.value)"
+      [checked]="item.hide"
+    >
+      {{ item.label }}
+    </mat-checkbox>
+  </ng-container>
+</header>
+
+<main class="responsive-table">
+  <table id="table-data" mat-table matTableExporter [dataSource]="dataSource" matSort>
+    <ng-container matColumnDef="select">
+      <th mat-header-cell *matHeaderCellDef>
+        <mat-checkbox
+          (change)="$event ? masterToggle() : null"
+          [checked]="selection.hasValue() && isAllSelected()"
+          [indeterminate]="selection.hasValue() && !isAllSelected()"
+        >
+        </mat-checkbox>
+      </th>
+      <td mat-cell *matCellDef="let row">
+        <mat-checkbox
+          (click)="$event.stopPropagation()"
+          (change)="$event ? selection.toggle(row) : null"
+          [checked]="selection.isSelected(row)"
+        >
+        </mat-checkbox>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="flag">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Flag</th>
+      <td mat-cell *matCellDef="let element">
+        <img src="{{ element.countryInfo.flag }}" width="20px" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="country">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Country Name</th>
+      <td mat-cell *matCellDef="let element">{{ element.country }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="cases">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Cases</th>
+      <td mat-cell *matCellDef="let element">{{ element.cases }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="todayCases">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Today Cases</th>
+      <td mat-cell *matCellDef="let element">{{ element.todayCases }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="deaths">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Death</th>
+      <td mat-cell *matCellDef="let element">{{ element.deaths }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="todayDeaths">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Today Death</th>
+      <td mat-cell *matCellDef="let element">{{ element.todayDeaths }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="recovered">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Recovered</th>
+      <td mat-cell *matCellDef="let element">{{ element.recovered }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="active">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
+      <td mat-cell *matCellDef="let element">{{ element.active }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="action">
+      <th mat-header-cell *matHeaderCellDef>Action</th>
+      <td mat-cell *matCellDef="let row">
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="openAddEditDialog(edit, row)"
+          matTooltip="Edit row"
+        >
+          <mat-icon>edit</mat-icon>
+        </button>
+
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="openDeleteDialog(1, row)"
+          matTooltip="Delete row"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="disColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: disColumns"></tr>
+  </table>
+
+  <mat-card *ngIf="isLoading" class="loading-card">
+    <mat-progress-spinner
+      color="primary"
+      mode="indeterminate"
+    ></mat-progress-spinner>
+  </mat-card>
+
+  <mat-paginator
+    [pageSizeOptions]="[10, 20, 50]"
+    showFirstLastButtons
+  ></mat-paginator>
+</main>
