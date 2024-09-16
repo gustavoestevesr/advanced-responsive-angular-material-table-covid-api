@@ -1,0 +1,11 @@
+.container-status-dashbard {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  padding: 16px;
+}
+
+.status-dashboard-card {
+  flex: auto;
+  margin: 16px;
+}

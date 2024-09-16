@@ -1,0 +1,41 @@
+<div class="container-status-dashbard">
+  <div class="status-dashboard-card">
+    <app-dashboard-status-card [icon]="'star_order'" [count]="orders_count" [label]="'Orders'"></app-dashboard-status-card>
+  </div>
+  <div class="status-dashboard-card">
+    <app-dashboard-status-card [icon]="'rate_review'" [count]="reviews_count" [label]="'Reviews'"></app-dashboard-status-card>
+  </div>
+  <div class="status-dashboard-card">
+    <app-dashboard-status-card [icon]="'mouse'" [count]="clicks_count" [label]="'Clicks'"></app-dashboard-status-card>
+  </div>
+  <div class="status-dashboard-card">
+    <app-dashboard-status-card [icon]="'share'" [count]="shares_count" [label]="'Shares'"></app-dashboard-status-card>
+  </div>
+</div>
+
+<div fxLayout="row wrap" fxLayout.xs="column" fxLayoutGap="10px">
+  <div class="mb10" fxFlex="32"  fxFlex.lt-lg="49" *ngFor="let item of cards">
+    <mat-card>
+      <img mat-card-image [src]="item.src">
+      <mat-card-header style="justify-content: center">
+        <mat-card-title>
+          <h3 class="m-0">{{item.name}}</h3>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        {{item.description}}
+      </mat-card-content>
+      <mat-card-actions>
+        <button color="primary" mat-button>
+          <mat-icon class="location-icon">expand_more</mat-icon>
+        </button>
+        <button color="primary" mat-button>
+          <mat-icon class="location-icon">share</mat-icon>
+        </button>
+        <button color="primary" mat-button>
+          <mat-icon class="location-icon">thumb_up</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>
