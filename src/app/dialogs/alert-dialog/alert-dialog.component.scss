@@ -1,0 +1,26 @@
+.header,
+.dialog-message {
+  text-transform: lowercase;
+
+  h1 {
+    font-size: 2rem;
+  }
+}
+
+.header::first-letter,
+.dialog-message::first-letter {
+  text-transform: uppercase;
+}
+
+.alert-dialog {
+  min-width: 400px;
+  min-height: 180px;
+  padding: 16px;
+}
+
+.dialog-actions {
+  margin-top: 32px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
