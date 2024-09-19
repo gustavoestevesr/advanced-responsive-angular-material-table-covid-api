@@ -1,1 +1,87 @@
-<p>covid-form-dialog works!</p>
+<h1 mat-dialog-title>{{ action }}</h1>
+
+<form novalidate (ngSubmit)="onSubmit()" [formGroup]="covidForm" role="form">
+  <div mat-dialog-content class="container-inputs">
+    <mat-form-field class="w-100">
+      <input placeholder="Country" matInput formControlName="country" />
+      <mat-error>
+        {{ errors["country"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="item-flex">
+      <input placeholder="Cases" matInput formControlName="cases" />
+      <mat-error>
+        {{ errors["cases"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="item-flex">
+      <input placeholder="Today Cases" matInput formControlName="todayCases" />
+      <mat-error>
+        {{ errors["todayCases"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="item-flex">
+      <input placeholder="Deaths" matInput formControlName="deaths" />
+      <mat-error>
+        {{ errors["deaths"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="item-flex">
+      <input
+        placeholder="Today Deaths"
+        matInput
+        formControlName="todayDeaths"
+      />
+      <mat-error>
+        {{ errors["todayDeaths"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="item-flex">
+      <input placeholder="Recovered" matInput formControlName="recovered" />
+      <mat-error>
+        {{ errors["recovered"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="item-flex">
+      <input placeholder="Active" matInput formControlName="active" />
+      <mat-error>
+        {{ errors["active"] }}
+      </mat-error>
+    </mat-form-field>
+
+    <div formGroupName="countryInfo" class="w-100">
+      <mat-form-field class="w-100">
+        <input placeholder="Flag" matInput formControlName="flag" />
+        <mat-error>
+          {{ errors["flag"] }}
+        </mat-error>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div mat-dialog-actions>
+    <button
+      class="dialog-btn"
+      mat-raised-button
+      type="button"
+      (click)="closeDialog()"
+    >
+      {{ cancel }}
+    </button>
+    <button
+      class="dialog-btn"
+      mat-raised-button
+      color="primary"
+      type="submit"
+      [disabled]="covidForm.invalid"
+    >
+      {{ action }}
+    </button>
+  </div>
+</form>
