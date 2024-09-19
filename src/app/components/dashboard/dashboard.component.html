@@ -1,41 +1,72 @@
-<div class="container-status-dashbard">
-  <div class="status-dashboard-card">
-    <app-dashboard-status-card [icon]="'star_order'" [count]="orders_count" [label]="'Orders'"></app-dashboard-status-card>
+<header class="container-header-status">
+  <div class="status-header-card">
+    <app-dashboard-status-card
+      [icon]="'coronavirus'"
+      [count]="todayCases"
+      [label]="'Today Cases'"
+    ></app-dashboard-status-card>
   </div>
-  <div class="status-dashboard-card">
-    <app-dashboard-status-card [icon]="'rate_review'" [count]="reviews_count" [label]="'Reviews'"></app-dashboard-status-card>
+  <div class="status-header-card">
+    <app-dashboard-status-card
+      [icon]="'sick'"
+      [count]="todayDeaths"
+      [label]="'Today Deaths'"
+    ></app-dashboard-status-card>
   </div>
-  <div class="status-dashboard-card">
-    <app-dashboard-status-card [icon]="'mouse'" [count]="clicks_count" [label]="'Clicks'"></app-dashboard-status-card>
+  <div class="status-header-card">
+    <app-dashboard-status-card
+      [icon]="'favorite'"
+      [count]="todayRecovereds"
+      [label]="'Today Recovered'"
+    ></app-dashboard-status-card>
   </div>
-  <div class="status-dashboard-card">
-    <app-dashboard-status-card [icon]="'share'" [count]="shares_count" [label]="'Shares'"></app-dashboard-status-card>
+  <div class="status-header-card">
+    <app-dashboard-status-card
+      [icon]="'public'"
+      [count]="countriesMap.size"
+      [label]="'Total Contries'"
+    ></app-dashboard-status-card>
   </div>
-</div>
+</header>
 
-<div fxLayout="row wrap" fxLayout.xs="column" fxLayoutGap="10px">
-  <div class="mb10" fxFlex="32"  fxFlex.lt-lg="49" *ngFor="let item of cards">
-    <mat-card>
-      <img mat-card-image [src]="item.src">
-      <mat-card-header style="justify-content: center">
-        <mat-card-title>
-          <h3 class="m-0">{{item.name}}</h3>
+<main class="container-main-status">
+  <ng-container *ngIf="isLoading" ; else dashboardData>
+    <mat-progress-spinner class="example-margin" mode="indeterminate">
+    </mat-progress-spinner>
+  </ng-container>
+  <ng-container #dashboardData>
+    <mat-card class="status-main-card" *ngFor="let item of cards">
+      <mat-card-header class="mat-card-header">
+        <mat-card-title  class="mat-card-title">
+          <div mat-card-avatar>
+            <mat-icon class="icon-lg" color="primary">{{ item.icon }}</mat-icon>
+          </div>
+          <h5>{{ item.name }}</h5>
         </mat-card-title>
       </mat-card-header>
+
       <mat-card-content>
-        {{item.description}}
+        <mat-list role="list" *ngFor="let item of item.description; index as i">
+          <mat-list-item role="listitem">
+            <div class="flex-container">
+              <span class="item-flex">{{ i + 1 + "° " + item.country }}</span>
+              <span class="item-flex"><strong>{{ item.cases }}</strong></span>
+            </div>
+          </mat-list-item>
+        </mat-list>
       </mat-card-content>
+
       <mat-card-actions>
-        <button color="primary" mat-button>
-          <mat-icon class="location-icon">expand_more</mat-icon>
-        </button>
-        <button color="primary" mat-button>
-          <mat-icon class="location-icon">share</mat-icon>
-        </button>
-        <button color="primary" mat-button>
-          <mat-icon class="location-icon">thumb_up</mat-icon>
+        <button
+          mat-button
+          color="primary"
+          routerLink="/covid-reports"
+          routerLinkActivate="active"
+          ariaCurrentWhenActive="page"
+        >
+          View Details
         </button>
       </mat-card-actions>
     </mat-card>
-  </div>
-</div>
+  </ng-container>
+</main>

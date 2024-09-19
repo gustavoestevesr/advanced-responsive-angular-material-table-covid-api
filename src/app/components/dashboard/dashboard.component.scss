@@ -1,11 +1,61 @@
-.container-status-dashbard {
+.container-header-status {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
-  padding: 16px;
+  justify-content: center;
+  gap: 32px;
+  padding: 32px 16px;
 }
 
-.status-dashboard-card {
+.status-header-card {
   flex: auto;
-  margin: 16px;
+  min-width: 200px;
+  max-width: 20%;
+}
+
+.container-main-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 32px;
+  padding: 32px 16px;
+
+  .mat-card-header {
+    display: flex;
+    justify-content: center;
+  }
+
+  .mat-card-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    .icon-lg {
+      font-size: 40px;
+      width: 50px;
+      height: 50px;
+    }
+
+  }
+}
+
+.status-main-card {
+  flex: auto;
+  min-width: 350px;
+  max-width: 35%;
+}
+
+mat-list-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.flex-container {
+  display: flex;
+  justify-content: space-between;
+
+  .item-flex {
+    font-size: 18px;
+  }
 }
