@@ -1,12 +1,20 @@
-<mat-card>
-  <mat-card-header>
+<mat-card class="mat-card">
+  <mat-card-header class="mat-card-header">
     <div mat-card-avatar>
-      <mat-icon class="icon-lg" color="primary">{{icon}}</mat-icon>
+      <mat-icon class="icon-lg" color="primary">{{ icon }}</mat-icon>
     </div>
-    <mat-card-title>{{count}}</mat-card-title>
-    <mat-card-subtitle>{{label}}</mat-card-subtitle>
+    <mat-card-title class="mat-card-title">{{ count }}</mat-card-title>
+    <mat-card-subtitle class="mat-card-subtitle">{{ label }}</mat-card-subtitle>
   </mat-card-header>
-  <mat-card-actions>
-    <button mat-button color="primary" class="float-right">View Details</button>
+  <mat-card-actions class="mat-card-actions">
+    <button
+      mat-button
+      color="primary"
+      routerLink="/covid-reports"
+      routerLinkActivate="active"
+      ariaCurrentWhenActive="page"
+    >
+      View Details
+    </button>
   </mat-card-actions>
 </mat-card>
