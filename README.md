@@ -2,7 +2,7 @@
 
 
 <p>
-    <b>This project contains the basics of Angular for building an online store with catalog, shopping cart and checkout form.</b>
+    <b>Projeto em Angular para visualizar o status global da COVID-19 em dashboard e em uma tabela para uma análise mais detalhada por meio do consumo de uma API.</b>
 </p>
 
 <p>
