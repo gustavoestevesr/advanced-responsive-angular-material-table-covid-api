@@ -29,17 +29,18 @@
           type="text"
           [(ngModel)]="value"
           placeholder="Search here..."
-          (keyup)="applyFilter($event)"
+          (keyup)="onFilterInput($event)"
         />
         <button
           class="search-icon-button"
           matSuffix
           mat-icon-button
           color="primary"
+          aria-label="Search info"
         >
           <mat-icon
             class="search-icon"
-            *ngIf="value != ''; else elseBlock"
+            *ngIf="value !== ''; else elseBlock"
             (click)="value = ''"
             >close</mat-icon
           >
@@ -54,8 +55,9 @@
       <button
         mat-mini-fab
         color="accent"
-        (click)="openAddEditDialog(add, {})"
+        (click)="openAddEditDialog('Add', {})"
         matTooltip="Add new row"
+        aria-label="Add new row"
       >
         <mat-icon>add</mat-icon>
       </button>
@@ -65,6 +67,7 @@
         color="accent"
         (click)="toggleForm()"
         matTooltip="Show/Hide columns"
+        aria-label="Show/Hide columns"
       >
         <mat-icon>remove_red_eye</mat-icon>
       </button>
@@ -77,6 +80,7 @@
         "
         [disabled]="!selection.hasValue()"
         matTooltip="Delete selected row/s"
+        aria-label="Delete selected row/s"
       >
         <mat-icon>delete</mat-icon>
       </button>
@@ -86,20 +90,25 @@
         color="accent"
         [matMenuTriggerFor]="menuExport"
         matTooltip="More actions"
+        aria-label="More actions"
       >
         <mat-icon>more_vert</mat-icon>
       </button>
       <mat-menu #menuExport="matMenu">
-        <button mat-menu-item (click)="exportexcel()">
+        <button
+          mat-menu-item
+          (click)="exportExcel()"
+          aria-label="Export as EXCEL"
+        >
           <span>Export as EXCEL</span>
         </button>
-        <button mat-menu-item>
+        <button mat-menu-item aria-label="Export as CSV">
           <span>Export as CSV</span>
         </button>
-        <button mat-menu-item>
+        <button mat-menu-item aria-label="Export as JSON">
           <span>Export as JSON</span>
         </button>
-        <button mat-menu-item>
+        <button mat-menu-item aria-label="Export as TXT">
           <span>Export as TXT</span>
         </button>
       </mat-menu>
@@ -117,7 +126,7 @@
 </header>
 
 <main class="responsive-table">
-  <table id="table-data" mat-table matTableExporter [dataSource]="dataSource" matSort>
+  <table id="table-data" mat-table [dataSource]="dataSource" matSort>
     <ng-container matColumnDef="select">
       <th mat-header-cell *matHeaderCellDef>
         <mat-checkbox
@@ -140,43 +149,55 @@
     <ng-container matColumnDef="flag">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Flag</th>
       <td mat-cell *matCellDef="let element">
-        <img src="{{ element.countryInfo.flag }}" width="20px" />
+        <img src="{{ element?.countryInfo?.flag }}" width="35px" />
       </td>
     </ng-container>
 
     <ng-container matColumnDef="country">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Country Name</th>
-      <td mat-cell *matCellDef="let element">{{ element.country }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.country }}</td>
     </ng-container>
 
     <ng-container matColumnDef="cases">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Cases</th>
-      <td mat-cell *matCellDef="let element">{{ element.cases }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.cases }}</td>
     </ng-container>
 
     <ng-container matColumnDef="todayCases">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Today Cases</th>
-      <td mat-cell *matCellDef="let element">{{ element.todayCases }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.todayCases }}</td>
     </ng-container>
 
     <ng-container matColumnDef="deaths">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Total Death</th>
-      <td mat-cell *matCellDef="let element">{{ element.deaths }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.deaths }}</td>
     </ng-container>
 
     <ng-container matColumnDef="todayDeaths">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Today Death</th>
-      <td mat-cell *matCellDef="let element">{{ element.todayDeaths }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.todayDeaths }}</td>
     </ng-container>
 
     <ng-container matColumnDef="recovered">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Recovered</th>
-      <td mat-cell *matCellDef="let element">{{ element.recovered }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.recovered }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="critical">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Critical</th>
+      <td mat-cell *matCellDef="let element">
+        <mat-icon
+          class="icon-lg critical-icon"
+          [ngClass]="element?.critical > 0 ? 'dangerous' : 'safely'"
+          color="primary"
+          >{{ element?.critical > 0 ? "error" : "check_circle" }}</mat-icon
+        >
+      </td>
     </ng-container>
 
     <ng-container matColumnDef="active">
       <th mat-header-cell *matHeaderCellDef mat-sort-header>Active</th>
-      <td mat-cell *matCellDef="let element">{{ element.active }}</td>
+      <td mat-cell *matCellDef="let element">{{ element?.active }}</td>
     </ng-container>
 
     <ng-container matColumnDef="action">
@@ -185,8 +206,9 @@
         <button
           mat-icon-button
           color="primary"
-          (click)="openAddEditDialog(edit, row)"
+          (click)="openAddEditDialog('Edit', row)"
           matTooltip="Edit row"
+          aria-label="Edit row"
         >
           <mat-icon>edit</mat-icon>
         </button>
@@ -196,14 +218,15 @@
           color="primary"
           (click)="openDeleteDialog(1, row)"
           matTooltip="Delete row"
+          aria-label="Delete row"
         >
           <mat-icon>delete</mat-icon>
         </button>
       </td>
     </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="disColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: disColumns"></tr>
+    <tr mat-header-row *matHeaderRowDef="filteredDisplayColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: filteredDisplayColumns"></tr>
   </table>
 
   <mat-card *ngIf="isLoading" class="loading-card">

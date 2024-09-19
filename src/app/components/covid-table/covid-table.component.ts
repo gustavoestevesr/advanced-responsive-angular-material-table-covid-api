@@ -7,7 +7,7 @@ import {
 } from '@angular/animations';
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,33 +19,18 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { catchError, debounceTime, Subject, take, takeUntil } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { CovidFormDialogComponent } from '../../dialogs/covid-form-dialog/covid-form-dialog.component';
+import { CountryReport } from '../../models/country-report.model';
 import { AlertService } from '../../services/alert.service';
 import { CovidService } from '../../services/covid.service';
 
-export interface CountryReports {
-  country: string;
-  cases: number;
-  todayCases: number;
-  deaths: string;
-  todayDeaths: string;
-  recovered: number;
-  active: number;
-  critical: string;
-  casesPerOneMillion: number;
-  deathsPerOneMillion: number;
-  tests: string;
-  testsPerOneMillion: string;
-  countryInfo: {
-    flag: string;
-  };
-}
-
 export interface DisplayColumn {
-value: string
+  value: string;
   label: string;
   hide: boolean;
 }
@@ -70,6 +55,7 @@ export const fileName = 'ExcelSheet.xlsx';
     FormsModule,
     MatInputModule,
     MatButtonModule,
+    MatSnackBarModule,
   ],
   templateUrl: './covid-table.component.html',
   styleUrl: './covid-table.component.scss',
@@ -102,22 +88,29 @@ export const fileName = 'ExcelSheet.xlsx';
   ],
   providers: [CovidService],
 })
-export class CovidTableComponent {
+export class CovidTableComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator, { static: true }) paginator!: MatPaginator;
   @ViewChild(MatSort, { static: true }) sort!: MatSort;
-  ELEMENT_DATA!: CountryReports[];
-  dataSource = new MatTableDataSource<CountryReports>(this.ELEMENT_DATA);
-  selection!: SelectionModel<CountryReports>;
+
+  dataSource = new MatTableDataSource<CountryReport>([]);
+  selection = new SelectionModel<CountryReport>(true, []);
   countries: string[] = [];
-  selectedCountry: string = 'all';
+  selectedCountry = 'all';
+
   add: string = 'Add';
   edit: string = 'Edit';
   delete: string = 'Delete';
   value: string = '';
   isLoading: boolean = true;
 
-  // Keep as main 'column mapper'
-  displayedColumns: DisplayColumn[] = [
+  filterSubject$: Subject<string> = new Subject();
+  destroySubscriptions$ = new Subject<void>();
+
+  filteredDisplayColumns!: string[];
+
+  checkBoxList: DisplayColumn[] = [];
+
+  originalDisplayColumns: DisplayColumn[] = [
     { value: 'select', label: 'Select', hide: false },
     { value: 'flag', label: 'Flag', hide: false },
     { value: 'country', label: 'Country', hide: false },
@@ -126,199 +119,211 @@ export class CovidTableComponent {
     { value: 'deaths', label: 'Deaths', hide: false },
     { value: 'todayDeaths', label: 'TodayDeaths', hide: false },
     { value: 'recovered', label: 'Recovered', hide: false },
+    { value: 'critical', label: 'Critical', hide: false },
     { value: 'active', label: 'Active', hide: false },
     { value: 'action', label: 'Action', hide: false },
   ];
 
-  // Used in the template
-  disColumns!: string[];
+  private dialog = inject(MatDialog);
+  private service = inject(CovidService);
+  private alertService = inject(AlertService);
+  private snackBar = inject(MatSnackBar);
 
-  // Use for creating check box views dynamically in the template
-  checkBoxList: DisplayColumn[] = [];
-
-  constructor(
-    public dialog: MatDialog,
-    private service: CovidService,
-    private alertService: AlertService
-  ) {}
-
-  ngOnInit(): void {
-    // Apply paginator
+  ngOnInit() {
     this.dataSource.paginator = this.paginator;
 
-    // Apply sort option
     this.dataSource.sort = this.sort;
 
-    // Create instance of checkbox SelectionModel
-    this.selection = new SelectionModel<CountryReports>(true, []);
+    this.filteredDisplayColumns = this.originalDisplayColumns.map(
+      (c) => c.value
+    );
 
-    // Update with columns to be displayed
-    this.disColumns = this.displayedColumns.map((cd) => cd.value);
-
-    // Get covid19 data from external rest api endpoint
     this.getAllReports();
+
+    this.observeFilter$();
   }
 
-  // This function filter data by input in the search box
-  applyFilter(event: any): void {
-    this.dataSource.filter = event.target.value.trim().toLowerCase();
+  ngOnDestroy() {
+    this.destroySubscriptions$.next();
+    this.destroySubscriptions$.complete();
   }
 
-  // This function will be called when user click on select all check-box
+  onFilterInput(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.filterSubject$.next(filterValue);
+  }
+
+  applyFilter(filterValue: string) {
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  observeFilter$() {
+    this.filterSubject$
+      .pipe(debounceTime(300), takeUntil(this.destroySubscriptions$))
+      .subscribe((value) => {
+        this.applyFilter(value);
+      });
+  }
+
   isAllSelected(): boolean {
     const numSelected = this.selection.selected.length;
     const numRows = this.dataSource.data.length;
     return numSelected === numRows;
   }
 
-  masterToggle(): void {
+  masterToggle() {
     this.isAllSelected()
       ? this.selection.clear()
       : this.dataSource.data.forEach((row: any) => this.selection.select(row));
   }
 
-  // Add, Edit, Delete rows in data table
-  openAddEditDialog(action: string, obj: any): void {
-    obj.action = action;
+  openAddEditDialog(action: 'Add' | 'Edit', countryReport: any) {
     const dialogRef = this.dialog.open(CovidFormDialogComponent, {
-      data: obj,
+      data: {
+        action,
+        countryReport
+      },
     });
 
     dialogRef
       .afterClosed()
-      .subscribe((result: { data: { [x: string]: any } } | null) => {
-        if (result != null) {
-          const action = result.data['action'];
-          delete result.data['action'];
+      .pipe(take(1))
+      .subscribe((result: { action: 'Add' | 'Edit', data: any }) => {
+        if (result) {
           if (action == this.add) {
             this.addRowData(result.data);
           } else if (action == this.edit) {
             this.updateRowData(result.data);
-          } else {
-            console.log(action);
           }
         }
       });
   }
 
-  // Add a row into to data table
-  addRowData(row_obj: any): void {
-    const data = this.dataSource.data;
-    data.push(row_obj);
+  addRowData(countryReport: CountryReport) {
+    const data = [...this.dataSource.data, countryReport];
     this.dataSource.data = data;
+    this.showSnackBar('Row added successfuly!');
   }
 
-  // Update a row in data table
-  updateRowData(row_obj: any): void {
-    if (row_obj === null) {
-      return;
-    }
-    const data = this.dataSource.data;
-    const index = data.findIndex(
-      (item: { [x: string]: any }) =>
-        item['country'] === row_obj.data['country']
-    );
-    if (index > -1) {
-      data[index].country = row_obj.data['country'];
-      data[index].cases = row_obj.data['cases'];
-      data[index].todayCases = row_obj.data['todayCases'];
-      data[index].deaths = row_obj.data['deaths'];
-      data[index].todayDeaths = row_obj.data['todayDeaths'];
-      data[index].recovered = row_obj.data['recovered'];
-      data[index].active = row_obj.data['active'];
-    }
-    this.dataSource.data = data;
+  updateRowData(countryReport: CountryReport) {
+    const index = this.dataSource.data.findIndex(item => {
+      if (item.countryInfo._id === countryReport.countryInfo._id) {
+        return item;
+      }
+      return null;
+    });
+
+    if (index === -1) return;
+
+    const updatedData = [...this.dataSource.data];
+    updatedData[index] = countryReport;
+    this.dataSource.data = updatedData;
+    this.showSnackBar('Row edited successfuly!');
   }
 
-  // Open confirmation dialog
-  openDeleteDialog(len: number, obj: any): void {
+  showSnackBar(title: string) {
+    this.snackBar.open(title, 'Ok', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
+  }
+
+  openDeleteDialog(len: number, obj: any) {
     const options = {
       title: 'Delete?',
-      message: `Are you sure want to remove ${len} ${len === 1 ? 'row?' : 'rows?'}`,
+      message: `Are you sure want to remove ${len} ${
+        len === 1 ? 'row?' : 'rows?'
+      }`,
       cancelText: 'NO',
       confirmText: 'YES',
-      panelClass: 'alert-dialog'
+      panelClass: 'alert-dialog',
     };
 
-    // If user confirms, remove selected row from data table
     this.alertService.open(options);
-    this.alertService.confirmed().subscribe((confirmed: any) => {
-      if (confirmed) {
-        this.deleteRow(obj);
-      }
-    });
+    this.alertService
+      .confirmed()
+      .pipe(take(1))
+      .subscribe((confirmed: any) => {
+        if (confirmed) {
+          this.deleteRow(obj);
+        }
+      });
   }
 
-  // Delete a row by 'row' delete button
-  deleteRow(row_obj: any): void {
-    const data = this.dataSource.data;
-    const index = data.findIndex(
-      (item: any) => item['country'] === row_obj['country']
-    );
-    if (index > -1) {
-      data.splice(index, 1);
-    }
-    this.dataSource.data = data;
+  deleteRow(countryReport: CountryReport) {
+    const index = this.dataSource.data.findIndex(item => item.countryInfo._id === countryReport.countryInfo._id);
+
+    if (index === -1) return;
+
+    const updatedData = [...this.dataSource.data];
+    updatedData.splice(index, 1);
+    this.dataSource.data = updatedData;
+
+    this.showSnackBar('Row deleted successfully!');
   }
 
-  // Fill data table
-  public getAllReports(): void {
-    let resp = this.service.getAll();
-    resp.subscribe((report: any) => {
-      this.isLoading = false;
-      this.dataSource.data = report as CountryReports[];
-    });
+  public getAllReports() {
+    this.service
+      .getAll()
+      .pipe(
+        take(1),
+        catchError((error) => {
+          console.error(error)
+          return [];
+        })
+      )
+      .subscribe((reports: CountryReport[]) => {
+        this.isLoading = false;
+        this.dataSource.data = reports as CountryReport[];
+      });
   }
 
-  // Fill on selected option
-  public onSelectCountry(): void {
+  public onSelectCountry() {
     this.selection.clear();
     if (this.selectedCountry === 'all') {
       this.getAllReports();
     } else {
-      let resp = this.service.getOneByCountry(this.selectedCountry);
-      resp.subscribe((report: any) => {
-        this.dataSource.data = [report] as CountryReports[];
-      });
+      this.service
+        .getOneByCountry(this.selectedCountry)
+        .pipe(take(1))
+        .subscribe((report: any) => {
+          this.dataSource.data = [report] as CountryReport[];
+        });
     }
   }
 
-  // Show/Hide check boxes
-  showCheckBoxes(): void {
-    this.checkBoxList = this.displayedColumns;
+  showCheckBoxes() {
+    this.checkBoxList = this.originalDisplayColumns;
   }
 
-  hideCheckBoxes(): void {
+  hideCheckBoxes() {
     this.checkBoxList = [];
   }
 
-  toggleForm(): void {
+  toggleForm() {
     this.checkBoxList.length ? this.hideCheckBoxes() : this.showCheckBoxes();
   }
 
-  // Show/Hide columns
   hideColumn(event: any, item: string) {
-    this.displayedColumns.forEach((element) => {
+    this.originalDisplayColumns.forEach((element) => {
       if (element['value'] == item) {
         element['hide'] = event.checked;
         return;
       }
     });
-    this.disColumns = this.displayedColumns
+    this.filteredDisplayColumns = this.originalDisplayColumns
       .filter((cd) => !cd.hide)
       .map((cd) => cd.value);
   }
 
-  exportexcel() {
-    /**passing table id**/
+  exportExcel() {
     let data = document.getElementById('table-data');
     const ws: XLSX.WorkSheet = XLSX.utils.table_to_sheet(data);
 
-    /**Generate workbook and add the worksheet**/
     const wb: XLSX.WorkBook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
 
-    /*save to file*/
     XLSX.writeFile(wb, fileName);
   }
 }
